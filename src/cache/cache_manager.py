@@ -29,7 +29,7 @@ class CacheManager:
             self.trans.commit()
         self.conn.close()
 
-    def _base_filter(self, stmt):
+    def _base_filter(self, stmt: select) -> select:
         return (stmt
                 .where(self.table.c.coin_id == self.coin_id)
                 .where(self.table.c.currency_symbol == self.currency_symbol))
