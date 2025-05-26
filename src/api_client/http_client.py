@@ -8,7 +8,7 @@ from config import PRICE_PRECISION
 from project_utils.time import days_to_call
 
 
-def get(url: str, params: dict[str, any] = None) -> dict:
+def get(url: str, params: dict[str, Any] = None) -> dict:
     response = requests.get(url, params=params, timeout=5)
     response.raise_for_status()
     return response.json()
