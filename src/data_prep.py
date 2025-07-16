@@ -20,12 +20,15 @@ def resample_data(ts_frame: pd.DataFrame, freq : str='1D') -> pd.DataFrame:
         'market_cap': 'last',
     })
 
-
-def get_complete_session(hist_df: pd.DataFrame, ohlc_df: pd.DataFrame, freq : str='1D') -> pd.DataFrame:
+def check_if_dfs_have_the_same_attrs(hist_df: pd.DataFrame,  ohlc_df: pd.DataFrame) -> None:
     hist_coin, hist_currency = get_frame_attr(hist_df)
     ohlc_coin, ohlc_currency = get_frame_attr(ohlc_df)
+
     if (hist_coin, hist_currency) != (ohlc_coin, ohlc_currency):
         raise ValueError('hist_df and ohlc_df must have same coin_id and currency_symbol')
+
+def get_complete_session(hist_df: pd.DataFrame, ohlc_df: pd.DataFrame, freq : str='1D') -> pd.DataFrame:
+    check_if_dfs_have_the_same_attrs(hist_df, ohlc_df)
 
     sessions = (hist_df
                 .merge(ohlc_df, on='timestamp', how='outer')
