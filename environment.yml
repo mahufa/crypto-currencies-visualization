@@ -1,4 +1,4 @@
-name: crypto_currency_visualization
+name: crypto_project
 channels:
   - defaults
   - https://repo.anaconda.com/pkgs/main
@@ -19,8 +19,8 @@ dependencies:
   - brotli-python=1.0.9=py311h313beb8_9
   - bzip2=1.0.8=h80987f9_6
   - c-ares=1.19.1=h80987f9_0
-  - ca-certificates=2024.12.31=hca03da5_0
-  - certifi=2025.1.31=py311hca03da5_0
+  - ca-certificates=2025.2.25=hca03da5_0
+  - certifi=2025.7.14=py311hca03da5_0
   - cffi=1.17.1=py311h3eb5a62_1
   - charset-normalizer=3.3.2=pyhd3eb1b0_0
   - comm=0.2.1=py311hca03da5_0
@@ -44,6 +44,7 @@ dependencies:
   - icu=73.1=h313beb8_0
   - idna=3.7=py311hca03da5_0
   - importlib_resources=6.4.0=py311hca03da5_0
+  - iniconfig=2.1.0=py311hca03da5_0
   - ipykernel=6.29.5=py311hca03da5_1
   - ipython=8.30.0=py311hca03da5_0
   - ipywidgets=8.1.5=py311hca03da5_0
@@ -113,7 +114,7 @@ dependencies:
   - numpy-base=2.2.2=py311hfbfe69c_0
   - openjpeg=2.5.2=h54b8e55_0
   - openldap=2.6.4=he7ef289_0
-  - openssl=3.0.15=h80987f9_0
+  - openssl=3.0.16=h02f6b3c_0
   - overrides=7.4.0=py311hca03da5_0
   - packaging=24.2=py311hca03da5_0
   - pandas=2.2.3=py311hcf29cfe_0
@@ -124,6 +125,7 @@ dependencies:
   - pillow=11.1.0=py311h84e58ab_0
   - pip=25.0=py311hca03da5_0
   - platformdirs=3.10.0=py311hca03da5_0
+  - pluggy=1.5.0=py311hca03da5_0
   - ply=3.11=py311hca03da5_0
   - prometheus_client=0.21.0=py311hca03da5_0
   - prompt-toolkit=3.0.43=py311hca03da5_0
@@ -137,6 +139,8 @@ dependencies:
   - pyqt=5.15.10=py311h313beb8_1
   - pyqt5-sip=12.13.0=py311h80987f9_1
   - pysocks=1.7.1=py311hca03da5_0
+  - pytest=8.4.1=py311hca03da5_0
+  - pytest-mock=3.14.0=py311hca03da5_0
   - python=3.11.11=hb885b13_0
   - python-dateutil=2.9.0post0=py311hca03da5_2
   - python-fastjsonschema=2.20.0=py311hca03da5_0
@@ -183,4 +187,4 @@ dependencies:
   - zipp=3.21.0=py311hca03da5_0
   - zlib=1.2.13=h18a0788_1
   - zstd=1.5.6=hfb09047_0
-prefix: /opt/anaconda3/envs/crypto_currency_visualization
+prefix: /opt/anaconda3/envs/crypto_project
