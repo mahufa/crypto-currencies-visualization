@@ -1,12 +1,12 @@
 import pandas as pd
 
-from project_utils.frames import (
-    get_frame_attr,
+from project_utils import (
+    get_id_and_currency,
     get_df_with_date_index_from_ts_column
 )
 
 
-class SessionMaker:
+class OHLCSessionMaker:
     def __init__(self, hist_df: pd.DataFrame, ohlc_df: pd.DataFrame, freq: str = '1D'):
         self._validate_dfs(hist_df, ohlc_df)
 
@@ -38,16 +38,16 @@ class SessionMaker:
             hist_df: pd.DataFrame,
             ohlc_df: pd.DataFrame,
     ) -> None:
-        SessionMaker._check_if_any_df_empty(hist_df, ohlc_df)
-        SessionMaker._check_if_dfs_have_the_same_attrs(hist_df, ohlc_df)
+        OHLCSessionMaker._check_if_any_df_empty(hist_df, ohlc_df)
+        OHLCSessionMaker._check_if_dfs_have_the_same_attrs(hist_df, ohlc_df)
 
     @staticmethod
     def _check_if_dfs_have_the_same_attrs(
             hist_df: pd.DataFrame,
             ohlc_df: pd.DataFrame,
     ) -> None:
-        hist_coin, hist_currency = get_frame_attr(hist_df)
-        ohlc_coin, ohlc_currency = get_frame_attr(ohlc_df)
+        hist_coin, hist_currency = get_id_and_currency(hist_df)
+        ohlc_coin, ohlc_currency = get_id_and_currency(ohlc_df)
 
         if (hist_coin, hist_currency) != (ohlc_coin, ohlc_currency):
             raise ValueError('hist_df and ohlc_df must have same coin_id and currency_symbol')
