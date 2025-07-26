@@ -1,41 +1,61 @@
 import pandas as pd
 
-from project_utils.frames import get_frame_attr
+from project_utils.frames import (
+    get_frame_attr,
+    get_df_with_date_index_from_ts_column
+)
 
 
-def set_date_index(ts_df: pd.DataFrame) -> pd.DataFrame:
-    return (ts_df
-                .assign(timestamp = pd.to_datetime(ts_df.timestamp, unit='ms').dt.floor('s'))
-                .set_index('timestamp')
-                .rename_axis('datetime'))
+class SessionMaker:
+    def __init__(self, hist_df: pd.DataFrame, ohlc_df: pd.DataFrame, freq: str = '1D'):
+        self._validate_dfs(hist_df, ohlc_df)
 
+        self.hist_df = hist_df
+        self.ohlc_df = ohlc_df
+        self.freq = freq
 
-def resample_data(ts_frame: pd.DataFrame, freq : str='1D') -> pd.DataFrame:
-    return ts_frame.resample(freq).agg({
-        'open': 'first',
-        'high': 'max',
-        'low': 'min',
-        'close': 'last',
-        'total_volume': 'sum',
-        'market_cap': 'last',
-    })
+    def make_session(self) -> pd.DataFrame:
+        sessions = (self.hist_df
+                    .merge(self.ohlc_df, on='timestamp', how='outer')
+                    .pipe(get_df_with_date_index_from_ts_column)
+                    .pipe(self._resample_data)
+                    )
+        sessions.attrs = self.hist_df.attrs
+        return sessions
 
-def check_if_dfs_have_the_same_attrs(hist_df: pd.DataFrame,  ohlc_df: pd.DataFrame) -> None:
-    hist_coin, hist_currency = get_frame_attr(hist_df)
-    ohlc_coin, ohlc_currency = get_frame_attr(ohlc_df)
+    def _resample_data(self, ts_frame: pd.DataFrame) -> pd.DataFrame:
+        return ts_frame.resample(self.freq).agg({
+            'open': 'first',
+            'high': 'max',
+            'low': 'min',
+            'close': 'last',
+            'total_volume': 'sum',
+            'market_cap': 'last',
+        })
 
-    if (hist_coin, hist_currency) != (ohlc_coin, ohlc_currency):
-        raise ValueError('hist_df and ohlc_df must have same coin_id and currency_symbol')
+    @staticmethod
+    def _validate_dfs(
+            hist_df: pd.DataFrame,
+            ohlc_df: pd.DataFrame,
+    ) -> None:
+        SessionMaker._check_if_any_df_empty(hist_df, ohlc_df)
+        SessionMaker._check_if_dfs_have_the_same_attrs(hist_df, ohlc_df)
 
-def get_complete_session(hist_df: pd.DataFrame, ohlc_df: pd.DataFrame, freq : str='1D') -> pd.DataFrame:
-    check_if_dfs_have_the_same_attrs(hist_df, ohlc_df)
+    @staticmethod
+    def _check_if_dfs_have_the_same_attrs(
+            hist_df: pd.DataFrame,
+            ohlc_df: pd.DataFrame,
+    ) -> None:
+        hist_coin, hist_currency = get_frame_attr(hist_df)
+        ohlc_coin, ohlc_currency = get_frame_attr(ohlc_df)
 
-    sessions = (hist_df
-                .merge(ohlc_df, on='timestamp', how='outer')
-                .pipe(set_date_index)
-                .pipe(resample_data, freq=freq)
-                )
+        if (hist_coin, hist_currency) != (ohlc_coin, ohlc_currency):
+            raise ValueError('hist_df and ohlc_df must have same coin_id and currency_symbol')
 
-    sessions.attrs = hist_df.attrs
-
-    return sessions
+    @staticmethod
+    def _check_if_any_df_empty(
+            hist_df: pd.DataFrame,
+            ohlc_df: pd.DataFrame,
+    ) -> None:
+        if hist_df.empty or ohlc_df.empty:
+            raise ValueError("Empty dataframes not supported")

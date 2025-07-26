@@ -12,3 +12,9 @@ def get_frame_attr(ts_frame: pd.DataFrame) -> tuple[str,str]:
     if missing:
         raise ValueError(f"Missing DataFrame attrs: {', '.join(missing)}")
     return ts_frame.attrs['coin_id'], ts_frame.attrs['currency_symbol']
+
+def get_df_with_date_index_from_ts_column(ts_frame: pd.DataFrame) -> pd.DataFrame:
+    return (ts_frame
+            .assign(timestamp=pd.to_datetime(ts_frame.timestamp, unit='ms').dt.floor('s'))
+            .set_index('timestamp')
+            .rename_axis('datetime'))
