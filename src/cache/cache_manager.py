@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, Table, Column
 
 from cache.db_manager import get_connection
 from cache.db_schema import metadata, historical_data, ohlc_data
@@ -9,61 +9,76 @@ from project_utils import utc_from_cached_ts
 
 
 class CacheManager:
-    def __init__(self,  coin_id: str, currency_symbol: str, table_name: str):
-        self.table = metadata.tables.get(table_name)
-        if self.table is None:
-            raise ValueError(f"Table {table_name} does not exist in metadata.")
-
-        self.coin_id = coin_id
-        self.currency_symbol = currency_symbol
+    def __init__(
+            self,
+            coin_id: str,
+            currency_symbol: str,
+            table_name: str
+    ):
+        self._table = self._get_table_or_throw(table_name)
+        self._coin_id = coin_id
+        self._currency_symbol = currency_symbol
 
     def __enter__(self):
-        self.conn = get_connection()
-        self.trans = self.conn.begin()
+        self._conn = get_connection()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if exc_type:
-            self.trans.rollback()
-        else:
-            self.trans.commit()
-        self.conn.close()
-
-    def _base_filter(self, stmt: select) -> select:
-        return (stmt
-                .where(self.table.c.coin_id == self.coin_id)
-                .where(self.table.c.currency_symbol == self.currency_symbol))
+        self._conn.close()
 
     def last_dt(self) -> datetime | None:
-        q = (select(func.max(self.table.c.timestamp))
-             .select_from(self.table))
-        last_ts = self.conn.execute(self._base_filter(q)).scalar()
+        q = (select(func.max(self._table.c.timestamp))
+             .select_from(self._table))
+        last_ts = self._conn.execute(self._filter_using_id_and_currency(q)).scalar()
         return utc_from_cached_ts(last_ts) if last_ts else None
 
     def fetch_local(self) -> list[dict]:
-        q = (select(*[col for col in self.table.c if col.name not in ['coin_id', 'currency_symbol']])
-                 .select_from(self.table))
-
-        q_result =  self.conn.execute(self._base_filter(q))
+        q_result = self._get_cursor_with_table_data()
 
         cols = q_result.keys()
         rows = q_result.fetchall()
-        return [{col : val for col, val in zip(cols, row)} for row in rows]
+        return [{col: val for col, val in zip(cols, row)} for row in rows]
 
     def upsert(self, raw_data: dict | list):
         normalized_data = self._normalize_data(raw_data)
+        data_to_upsert = self._prepare_for_upsert(normalized_data)
 
-        data_to_upsert = [{'coin_id': self.coin_id,
-                           'currency_symbol': self.currency_symbol,
-                           **row} for row in normalized_data]
+        stmt = self._table.insert().prefix_with('OR REPLACE') # SQLite only!
+        self._conn.execute(stmt, data_to_upsert)
 
-        stmt = self.table.insert().prefix_with('OR REPLACE')
-        self.conn.execute(stmt, data_to_upsert)
+    def _get_cursor_with_table_data(self):
+        column_query = (select
+                            (*self._get_table_data_columns())
+                        .select_from(self._table))
+        filtering_query = self._filter_using_id_and_currency(column_query)
+        return self._conn.execute(filtering_query)
+
+    def _get_table_data_columns(self) -> list[Column]:
+        return [col for col in self._table.c if col.name not in [
+                                'coin_id',
+                                'currency_symbol']]
+
+    def _filter_using_id_and_currency(self, stmt: select) -> select:
+        return (stmt
+                .where(self._table.c.coin_id == self._coin_id)
+                .where(self._table.c.currency_symbol == self._currency_symbol))
+
+    def _prepare_for_upsert(self, normalized_data: list[dict]) -> list[dict]:
+        return [{'coin_id': self._coin_id,
+          'currency_symbol': self._currency_symbol,
+          **row} for row in normalized_data]
 
     def _normalize_data(self, raw_data: dict | list) -> list[dict]:
-        if self.table is historical_data:
+        if self._table is historical_data:
             return parse_historical(raw_data)
-        elif self.table is ohlc_data:
+        elif self._table is ohlc_data:
             return parse_ohlc(raw_data)
         else:
-            raise RuntimeError(f"No parser for table {self.table.name!r}")
+            raise RuntimeError(f"No parser for table {self._table.name!r}")
+
+    @staticmethod
+    def _get_table_or_throw(table_name: str) -> Table:
+        table = metadata.tables.get(table_name)
+        if table is None:
+            raise ValueError(f"Table {table_name} does not exist in metadata.")
+        return table
