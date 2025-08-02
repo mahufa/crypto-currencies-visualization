@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import select, func, Column, Table
+from sqlalchemy import select, func, Column
 
 from cache.db_manager import get_connection, get_table_or_throw
 from cache.parsers import normalize_data

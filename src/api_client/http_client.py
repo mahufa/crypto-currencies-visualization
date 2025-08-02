@@ -7,8 +7,7 @@ from urllib3.util import Retry
 
 from cache import CacheManager
 from config import PRICE_PRECISION
-from project_utils import CoinMetaData
-from project_utils.time import days_to_call
+from project_utils import CoinMetaData, days_to_call
 
 JSON: TypeAlias = dict[str, Any] | list[Any] | str | int | float | bool | None
 

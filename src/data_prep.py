@@ -1,10 +1,6 @@
 import pandas as pd
 
-from project_utils import (
-    set_dt_index_using_ts_column
-)
-from project_utils import CoinMetaData
-
+from project_utils import set_dt_index_using_ts_column, CoinMetaData
 
 class OHLCSessionMaker:
     def __init__(self, hist_df: pd.DataFrame, ohlc_df: pd.DataFrame, freq: str = '1D'):
