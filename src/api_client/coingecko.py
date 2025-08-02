@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pandas as pd
 
-from project_utils import make_time_series_frame
+from project_utils import make_time_series_frame, CoinMetaData
 from api_client.http_client import get_time_series, get
 from config import DEFAULT_CURRENCY, PRICE_PRECISION, DEFAULT_COIN
 
@@ -49,10 +49,10 @@ def get_sorted_by_mkt_cap(n: int=10, currency_symbol: str = DEFAULT_CURRENCY) ->
         if data else pd.DataFrame()
 
 
-def get_historical_data(coin_id: str = DEFAULT_COIN,
-                        currency_symbol: str = DEFAULT_CURRENCY,
-                        starting_dt: datetime = None
-                        ) -> pd.DataFrame:
+def get_historical_data(
+        coin_meta: CoinMetaData = CoinMetaData(DEFAULT_COIN, DEFAULT_CURRENCY),
+        starting_dt: datetime = None
+) -> pd.DataFrame:
     """ Returns DataFrame with historical data from day mathing
     starting_dt, or if it's None, from range of DEFAULT_DAYS.
 
@@ -66,16 +66,16 @@ def get_historical_data(coin_id: str = DEFAULT_COIN,
 
      If status code = 4xx or 5xx raises HTTPError. """
 
-    url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart"
-    data = get_time_series(url, coin_id, currency_symbol, starting_dt, 'historical_data')
+    url = f"https://api.coingecko.com/api/v3/coins/{coin_meta.coin_id}/market_chart"
+    data = get_time_series(url, coin_meta, starting_dt, 'historical_data')
 
-    return make_time_series_frame(data, coin_id, currency_symbol)
+    return make_time_series_frame(data, coin_meta)
 
 
-def get_ohlc_data(coin_id: str = DEFAULT_COIN,
-                  currency_symbol: str = DEFAULT_CURRENCY,
-                  starting_dt: datetime=None
-                  ) -> pd.DataFrame:
+def get_ohlc_data(
+        coin_meta: CoinMetaData = CoinMetaData(DEFAULT_COIN, DEFAULT_CURRENCY),
+        starting_dt: datetime=None
+) -> pd.DataFrame:
     """ Returns a DataFrame with OHLC data from the day matching
     starting_dt, or if it's None, from the range of DEFAULT_DAYS
     adjusted to supported by CoinGecko free tier limits.
@@ -90,7 +90,7 @@ def get_ohlc_data(coin_id: str = DEFAULT_COIN,
 
     If status code = 4xx or 5xx raises HTTPError. """
 
-    url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/ohlc"
-    data = get_time_series(url, coin_id, currency_symbol, starting_dt, 'ohlc_data')
+    url = f"https://api.coingecko.com/api/v3/coins/{coin_meta.coin_id}/ohlc"
+    data = get_time_series(url, coin_meta, starting_dt, 'ohlc_data')
 
-    return make_time_series_frame(data, coin_id, currency_symbol)
+    return make_time_series_frame(data, coin_meta)

@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Engine, Connection
+from sqlalchemy import create_engine, Engine, Connection, Table
 
 from .db_schema import metadata
 
@@ -15,3 +15,10 @@ def get_engine(db_url="sqlite:///cache.db") -> Engine:
 
 def get_connection() -> Connection:
     return get_engine().connect()
+
+
+def get_table_or_throw(table_name: str) -> Table:
+    table = metadata.tables.get(table_name)
+    if table is None:
+        raise ValueError(f"Table {table_name} does not exist in metadata.")
+    return table

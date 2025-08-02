@@ -7,6 +7,7 @@ from urllib3.util import Retry
 
 from cache import CacheManager
 from config import PRICE_PRECISION
+from project_utils import CoinMetaData
 from project_utils.time import days_to_call
 
 JSON: TypeAlias = dict[str, Any] | list[Any] | str | int | float | bool | None
@@ -53,17 +54,16 @@ def get(url: str,
 
 
 def get_time_series(url: str,
-                    coin_id: str,
-                    currency_symbol: str,
+                    coin_meta: CoinMetaData,
                     starting_dt: datetime | None,
                     table_name: str) -> dict | Any | None:
 
-    with (CacheManager(coin_id, currency_symbol, table_name) as cache):
+    with (CacheManager(coin_meta, table_name) as cache):
         days = days_to_call(starting_dt,
                             cache.last_dt(),
                             is_ohlc = table_name=='ohlc_data')
         if days != 0:
-            params = {"vs_currency": currency_symbol,
+            params = {"vs_currency": coin_meta.currency,
                       "precision": PRICE_PRECISION,
                       "days": days}
 

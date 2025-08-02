@@ -1,9 +1,9 @@
 import pandas as pd
 
 from project_utils import (
-    get_id_and_currency,
-    get_df_with_date_index_from_ts_column
+    set_dt_index_using_ts_column
 )
+from project_utils import CoinMetaData
 
 
 class OHLCSessionMaker:
@@ -17,7 +17,7 @@ class OHLCSessionMaker:
     def make_session(self) -> pd.DataFrame:
         sessions = (self.hist_df
                     .merge(self.ohlc_df, on='timestamp', how='outer')
-                    .pipe(get_df_with_date_index_from_ts_column)
+                    .pipe(set_dt_index_using_ts_column)
                     .pipe(self._resample_data)
                     )
         sessions.attrs = self.hist_df.attrs
@@ -46,10 +46,10 @@ class OHLCSessionMaker:
             hist_df: pd.DataFrame,
             ohlc_df: pd.DataFrame,
     ) -> None:
-        hist_coin, hist_currency = get_id_and_currency(hist_df)
-        ohlc_coin, ohlc_currency = get_id_and_currency(ohlc_df)
+        hist_meta = CoinMetaData.from_ts_frame(hist_df)
+        ohlc_meta= CoinMetaData.from_ts_frame(ohlc_df)
 
-        if (hist_coin, hist_currency) != (ohlc_coin, ohlc_currency):
+        if hist_meta != ohlc_meta:
             raise ValueError('hist_df and ohlc_df must have same coin_id and currency_symbol')
 
     @staticmethod
