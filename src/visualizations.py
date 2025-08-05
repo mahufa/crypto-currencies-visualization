@@ -1,24 +1,39 @@
 import pandas as pd
+import mplfinance as mpf
+from matplotlib import pyplot as plt
+from matplotlib.dates import DayLocator, DateFormatter
 
-from project_utils import CoinMetaData
+from project_utils import CoinMetaData, set_dt_index_using_ts_column
 
 
 class TimeSeriesPlotter:
-    def __init__(self, time_series_frame: pd.DataFrame):
-        self._time_series_frame = time_series_frame
+    def __init__(
+            self,
+            time_series_frame: pd.DataFrame,
+            plot_size: tuple[int,int] = (10, 5),
+    ):
+        self._time_series_frame = time_series_frame.pipe(set_dt_index_using_ts_column)
         self._coin_meta = CoinMetaData.from_ts_frame(time_series_frame)
-        self.plot_size = (10, 5)
+        self.plot_size = plot_size
 
-    def make_price_plot(self):
-        return self._make_plot_by_columns(['price'])
+    @staticmethod
+    def _format_plot_date(ax: plt.Axes) -> None:
+        ax.xaxis.set_major_locator(DayLocator(interval=3))
+        ax.xaxis.set_major_formatter(DateFormatter('%m/%d'))
+        ax.figure.autofmt_xdate()
 
-    def make_total_volume_plot(self):
-        return self._make_plot_by_columns(['total_volume'])
 
-    def make_market_cap_plot(self):
-        return self._make_plot_by_columns(['market_cap'])
+class HistPlotter(TimeSeriesPlotter):
+    def plot_price(self):
+        return self._plot_by_columns(['price'])
 
-    def _make_plot_by_columns(
+    def plot_total_volume(self):
+        return self._plot_by_columns(['total_volume'])
+
+    def plot_market_cap(self):
+        return self._plot_by_columns(['market_cap'])
+
+    def _plot_by_columns(
             self,
             columns: list[str],
     ):
@@ -28,10 +43,13 @@ class TimeSeriesPlotter:
             y=columns,
             figsize= self.plot_size,
             title=f'{self._coin_meta.coin_id}: {title}',
-            grid=True,
             xlabel = 'Date',
             ylabel = self._coin_meta.currency,
+            grid = True,
         )
+
+        self._format_plot_date(ax)
+
         return ax
 
     @staticmethod
@@ -41,3 +59,46 @@ class TimeSeriesPlotter:
 
         return plotted_columns[0] if len(plotted_columns) == 1 \
             else ', '.join(plotted_columns)
+
+
+class OHLCPlotter(TimeSeriesPlotter):
+    _columns = ['open', 'high', 'low', 'close', 'total_volume']
+
+    def __init__(
+            self,
+            ohlc_df: pd.DataFrame,
+            plot_size = (10, 5),
+    ):
+        self._check_if_ohlc_df(ohlc_df)
+        super().__init__(ohlc_df, plot_size)
+
+    def plot_candlestick(self, has_volume: bool = False):
+        title = 'OHLCV' if has_volume else 'OHLC'
+
+        fig, axes = mpf.plot(
+            self._time_series_frame,
+            figsize=self.plot_size,
+            title=f'{self._coin_meta.coin_id}: {title}',
+            xlabel='Date',
+            ylabel=self._coin_meta.currency,
+            type='candle',
+            volume=has_volume,
+            columns=self._columns,
+            returnfig=True,
+        )
+
+        main_ax = axes[0]
+        self._format_plot_date(main_ax)
+
+        return fig, axes
+
+    @staticmethod
+    def _check_if_ohlc_df(df):
+        if not all([
+            'open' in df.columns,
+            'high' in df.columns,
+            'low' in df.columns,
+            'close' in df.columns,
+            'total_volume' in df.columns,
+        ]):
+            raise ValueError('OHLC frame must have open, high, low, close, and total_volume columns')

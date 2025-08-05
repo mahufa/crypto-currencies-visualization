@@ -3,7 +3,12 @@ import pandas as pd
 from project_utils import set_dt_index_using_ts_column, CoinMetaData
 
 class OHLCSessionMaker:
-    def __init__(self, hist_df: pd.DataFrame, ohlc_df: pd.DataFrame, freq: str = '1D'):
+    def __init__(
+            self,
+            hist_df: pd.DataFrame,
+            ohlc_df: pd.DataFrame,
+            freq: str = '1D'
+    ):
         self._validate_dfs(hist_df, ohlc_df)
 
         self.hist_df = hist_df
@@ -11,11 +16,13 @@ class OHLCSessionMaker:
         self.freq = freq
 
     def make_session(self) -> pd.DataFrame:
-        sessions = (self.hist_df
+        sessions = (
+            self.hist_df
                     .merge(self.ohlc_df, on='timestamp', how='outer')
                     .pipe(set_dt_index_using_ts_column)
                     .pipe(self._resample_data)
-                    )
+                    .dropna()
+        )
         sessions.attrs = self.hist_df.attrs
         return sessions
 
@@ -26,7 +33,6 @@ class OHLCSessionMaker:
             'low': 'min',
             'close': 'last',
             'total_volume': 'sum',
-            'market_cap': 'last',
         })
 
     @staticmethod

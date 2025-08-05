@@ -20,6 +20,12 @@ def make_time_series_frame(data: any, coin_meta: CoinMetaData) -> pd.DataFrame:
 
 
 def set_dt_index_using_ts_column(ts_frame: pd.DataFrame) -> pd.DataFrame:
+    if ts_frame.index.name == 'datetime':
+        return ts_frame
+
+    if not 'timestamp' in ts_frame.columns:
+        raise ValueError('ts_frame must have timestamp column')
+
     return (ts_frame
             .assign(timestamp=pd.to_datetime(ts_frame.timestamp, unit='ms').dt.floor('s'))
             .set_index('timestamp')
