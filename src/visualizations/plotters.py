@@ -1,9 +1,9 @@
 import pandas as pd
 import mplfinance as mpf
 from matplotlib import pyplot as plt
-from matplotlib.dates import DayLocator, DateFormatter
 
 from project_utils import CoinMetaData, set_dt_index_using_ts_column
+from visualizations.ax_formatter import AxFormatter
 
 
 class TimeSeriesPlotter:
@@ -11,16 +11,12 @@ class TimeSeriesPlotter:
             self,
             time_series_frame: pd.DataFrame,
             plot_size: tuple[int,int] = (10, 5),
+            ax_formatter: AxFormatter = None,
     ):
         self._time_series_frame = time_series_frame.pipe(set_dt_index_using_ts_column)
         self._coin_meta = CoinMetaData.from_ts_frame(time_series_frame)
         self.plot_size = plot_size
-
-    @staticmethod
-    def _format_plot_date(ax: plt.Axes) -> None:
-        ax.xaxis.set_major_locator(DayLocator(interval=3))
-        ax.xaxis.set_major_formatter(DateFormatter('%m/%d'))
-        ax.figure.autofmt_xdate()
+        self.ax_formatter = ax_formatter or AxFormatter()
 
 
 class HistPlotter(TimeSeriesPlotter):
@@ -48,7 +44,7 @@ class HistPlotter(TimeSeriesPlotter):
             grid = True,
         )
 
-        self._format_plot_date(ax)
+        self.ax_formatter.format_ax(ax)
 
         return ax
 
@@ -67,10 +63,12 @@ class OHLCPlotter(TimeSeriesPlotter):
     def __init__(
             self,
             ohlc_df: pd.DataFrame,
-            plot_size = (10, 5),
+            plot_size: tuple[int, int] = None,
+            ax_formatter: AxFormatter = None,
     ):
         self._check_if_ohlc_df(ohlc_df)
-        super().__init__(ohlc_df, plot_size)
+        super().__init__(ohlc_df, plot_size, ax_formatter)
+        self.ax_formatter.should_format_date = False
 
     def plot_candlestick(self, has_volume: bool = False):
         title = 'OHLCV' if has_volume else 'OHLC'
@@ -88,17 +86,18 @@ class OHLCPlotter(TimeSeriesPlotter):
         )
 
         main_ax = axes[0]
-        self._format_plot_date(main_ax)
+        self.ax_formatter.format_ax(main_ax)
+
+        if has_volume:
+            self._format_volume_ax(axes[2])
 
         return fig, axes
 
-    @staticmethod
-    def _check_if_ohlc_df(df):
-        if not all([
-            'open' in df.columns,
-            'high' in df.columns,
-            'low' in df.columns,
-            'close' in df.columns,
-            'total_volume' in df.columns,
-        ]):
-            raise ValueError('OHLC frame must have open, high, low, close, and total_volume columns')
+    def _format_volume_ax(self, volume_ax: plt.Axes):
+        volume_ax.set_ylabel('Volume')
+        self.ax_formatter.format_ax(volume_ax)
+
+    def _check_if_ohlc_df(self, df: pd.DataFrame):
+        missing = [col for col in self._columns if col not in df.columns]
+        if missing:
+            raise ValueError(f"OHLC frame missing required columns: {', '.join(missing)}")
